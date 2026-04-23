@@ -1,0 +1,7 @@
+target/
+build_exe/
+*.db
+*.sqlite
+.idea/
+*.iml
+.vscode/
