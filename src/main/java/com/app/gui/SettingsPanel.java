@@ -29,7 +29,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private void factoryReset() {
-        int resp = JOptionPane.showConfirmDialog(this, "¿Esta seguro? Perdera toda la informaion.", "Advertencia", JOptionPane.YES_NO_OPTION);
+        int resp = JOptionPane.showConfirmDialog(this, "¿Está seguro? Perderá toda la información.", "Advertencia", JOptionPane.YES_NO_OPTION);
         if (resp == JOptionPane.YES_OPTION) {
             try (Connection conn = DatabaseManager.getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.execute("DELETE FROM finance_records");

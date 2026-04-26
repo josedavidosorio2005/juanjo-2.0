@@ -227,10 +227,14 @@ public class GoalPanel extends JPanel {
             
             btnAdd.addActionListener(e -> {
                 try {
-                    double amount = Double.parseDouble(addField.getText());
+                    String text = addField.getText().trim();
+                    if (text.isEmpty()) return;
+                    double amount = Double.parseDouble(text);
                     goalDao.addFunds(goal.getId(), amount);
                     refreshList();
-                } catch (Exception ex) {}
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Monto inválido", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             });
             
             actions.add(new JLabel("$"));

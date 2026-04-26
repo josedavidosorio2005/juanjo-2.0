@@ -28,10 +28,22 @@ public class ReportsPanel extends JPanel {
         // Income vs Expenses Bar Chart
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
         List<FinanceRecord> records = financeDao.getAllRecords();
+        java.util.Map<String, Double> incomeMap = new java.util.TreeMap<>();
+        java.util.Map<String, Double> expenseMap = new java.util.TreeMap<>();
+
         for (FinanceRecord r : records) {
-            String month = r.getDate().substring(0, 7); // yyyy-MM
-            ds.addValue(r.getAmount(), r.getType(), month);
+            String date = r.getDate();
+            String month = (date != null && date.length() >= 7) ? date.substring(0, 7) : "Indefinido";
+            
+            if ("Ingreso".equals(r.getType())) {
+                incomeMap.put(month, incomeMap.getOrDefault(month, 0.0) + r.getAmount());
+            } else {
+                expenseMap.put(month, expenseMap.getOrDefault(month, 0.0) + r.getAmount());
+            }
         }
+        
+        incomeMap.forEach((m, v) -> ds.addValue(v, "Ingreso", m));
+        expenseMap.forEach((m, v) -> ds.addValue(v, "Gasto", m));
         
         JFreeChart barChart = ChartFactory.createBarChart("Ingresos vs Gastos Histórico", "Mes", "Monto ($)", ds, PlotOrientation.VERTICAL, true, true, false);
         barChart.setBackgroundPaint(new Color(0,0,0,0));

@@ -67,7 +67,7 @@ public class FinanceController {
                 
                 if (percent >= 100) {
                     JOptionPane.showMessageDialog(parentView, 
-                        "¡ALERTA CRÍTICA!\nEste gasto rompe tu límite del presupuesto definido par " + category + ".\nPresupuesto: $" + limit + " | Desbordado a: $" + String.format("%.2f", totalWillBe), 
+                        "¡ALERTA CRÍTICA!\nEste gasto rompe tu límite del presupuesto definido para " + category + ".\nPresupuesto: $" + limit + " | Desbordado a: $" + String.format("%.2f", totalWillBe), 
                         "Alerta Predictiva de Quiebra", JOptionPane.ERROR_MESSAGE);
                 } else if (percent >= 80) {
                     JOptionPane.showMessageDialog(parentView, 
