@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import com.app.utils.AppColors;
+import com.app.utils.ExportEngine;
 
 public class FinancePanel extends JPanel {
     private FinanceDao financeDao;
@@ -38,9 +39,20 @@ public class FinancePanel extends JPanel {
         title.setForeground(AppColors.TEXT_PRIMARY);
         header.add(title, BorderLayout.WEST);
         
-        JButton btnHistory = new JButton("📅 Ver Historial Completo");
+        JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        headerActions.setOpaque(false);
+        
+        JButton btnExport = new JButton("📥 Exportar CSV");
+        btnExport.setBackground(new Color(46, 204, 113));
+        btnExport.setForeground(Color.WHITE);
+        btnExport.addActionListener(e -> exportData());
+        headerActions.add(btnExport);
+
+        JButton btnHistory = new JButton("📅 Ver Historial");
         btnHistory.addActionListener(e -> showHistoryDialog());
-        header.add(btnHistory, BorderLayout.EAST);
+        headerActions.add(btnHistory);
+        
+        header.add(headerActions, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
         // 2. KPI Row
@@ -241,22 +253,52 @@ public class FinancePanel extends JPanel {
         if (controller.processAndSaveTransaction(this, am, date, cat, acc, desc, "", method, isRec, tipo)) {
             refreshMetrics();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Transacción guardada correctamente.");
         }
     }
 
+    private void exportData() {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                List<FinanceRecord> records = financeDao.getAllRecords();
+                String[] headers = {"Fecha", "Tipo", "Monto", "Categoria", "Descripcion", "Cuenta", "Metodo Pago"};
+                java.util.List<Object[]> rows = new java.util.ArrayList<>();
+                for (FinanceRecord r : records) {
+                    rows.add(new Object[]{r.getDate(), r.getType(), r.getAmount(), r.getCategory(), r.getDescription(), r.getAccount(), r.getPaymentMethod()});
+                }
+                ExportEngine.exportToCSV(FinancePanel.this, headers, rows, "Finanzas");
+                return null;
+            }
+        }.execute();
+    }
+
     private void refreshMetrics() {
-        List<FinanceRecord> records = financeDao.getAllRecords();
-        double ing = 0, gas = 0;
-        for (FinanceRecord r : records) {
-            if ("Ingreso".equals(r.getType())) ing += r.getAmount();
-            else gas += r.getAmount();
-        }
-        double bal = ing - gas;
-        saldoVal.setText("$" + String.format("%,.0f", bal));
-        ingresosVal.setText("$" + String.format("%,.0f", ing));
-        gastosVal.setText("$" + String.format("%,.0f", gas));
-        ahorroVal.setText("$" + String.format("%,.0f", ing * 0.20));
+        new SwingWorker<Double[], Void>() {
+            @Override
+            protected Double[] doInBackground() {
+                List<FinanceRecord> records = financeDao.getAllRecords();
+                double ing = 0, gas = 0;
+                for (FinanceRecord r : records) {
+                    if ("Ingreso".equals(r.getType())) ing += r.getAmount();
+                    else gas += r.getAmount();
+                }
+                return new Double[]{ing, gas};
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Double[] res = get();
+                    double ing = res[0];
+                    double gas = res[1];
+                    double bal = ing - gas;
+                    saldoVal.setText("$" + String.format("%,.0f", bal));
+                    ingresosVal.setText("$" + String.format("%,.0f", ing));
+                    gastosVal.setText("$" + String.format("%,.0f", gas));
+                    ahorroVal.setText("$" + String.format("%,.0f", ing * 0.20));
+                } catch (Exception e) {}
+            }
+        }.execute();
     }
     
     private void showHistoryDialog() {

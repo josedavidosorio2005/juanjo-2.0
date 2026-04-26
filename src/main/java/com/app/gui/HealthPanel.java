@@ -195,32 +195,48 @@ public class HealthPanel extends JPanel {
     }
 
     private void loadTableData() {
-        tableModel.setRowCount(0);
-        List<HealthRecord> records = healthDao.getAllRecords();
-        double sumWeight = 0;
-        for (HealthRecord r : records) {
-            tableModel.addRow(new Object[]{r.getDate(), r.getWeight(), r.getBloodPressure(), r.getNotes()});
-            sumWeight += r.getWeight();
-        }
-        
-        if (!records.isEmpty()) {
-            lastWeightVal.setText(records.get(0).getWeight() + " kg");
-            lastBpVal.setText(records.get(0).getBloodPressure());
-            avgWeightVal.setText(String.format("%.1f kg", sumWeight / records.size()));
-            recordsCountVal.setText(String.valueOf(records.size()));
-        }
+        new SwingWorker<List<HealthRecord>, Void>() {
+            @Override
+            protected List<HealthRecord> doInBackground() {
+                return healthDao.getAllRecords();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<HealthRecord> records = get();
+                    tableModel.setRowCount(0);
+                    double sumWeight = 0;
+                    for (HealthRecord r : records) {
+                        tableModel.addRow(new Object[]{r.getDate(), r.getWeight(), r.getBloodPressure(), r.getNotes()});
+                        sumWeight += r.getWeight();
+                    }
+                    
+                    if (!records.isEmpty()) {
+                        HealthRecord last = records.get(records.size() - 1);
+                        lastWeightVal.setText(last.getWeight() + " kg");
+                        lastBpVal.setText(last.getBloodPressure());
+                        avgWeightVal.setText(String.format("%.1f kg", sumWeight / records.size()));
+                        recordsCountVal.setText(String.valueOf(records.size()));
+                    }
+                } catch (Exception e) {}
+            }
+        }.execute();
     }
 
     private void exportToCSV() {
-        JFileChooser fc = new JFileChooser();
-        if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try (PrintWriter pw = new PrintWriter(fc.getSelectedFile())) {
-                pw.println("Fecha,Peso,Presion,Notas");
-                healthDao.getAllRecords().forEach(r -> pw.printf("%s,%.2f,%s,%s\n", r.getDate(), r.getWeight(), r.getBloodPressure(), r.getNotes()));
-                JOptionPane.showMessageDialog(this, "Exportado correctamente.");
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error al exportar.");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                List<HealthRecord> records = healthDao.getAllRecords();
+                String[] headers = {"Fecha", "Peso (kg)", "Presión Arterial", "Notas"};
+                java.util.List<Object[]> rows = new java.util.ArrayList<>();
+                for (HealthRecord r : records) {
+                    rows.add(new Object[]{r.getDate(), r.getWeight(), r.getBloodPressure(), r.getNotes()});
+                }
+                com.app.utils.ExportEngine.exportToCSV(HealthPanel.this, headers, rows, "Salud");
+                return null;
             }
-        }
+        }.execute();
     }
 }

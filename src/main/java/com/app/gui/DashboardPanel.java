@@ -24,6 +24,9 @@ import com.app.utils.AnimationUtils;
 public class DashboardPanel extends JPanel {
     private FinanceDao financeDao;
     private HealthDao healthDao;
+    
+    private JPanel kpiPanel, chartsPanel, activityPanel;
+    private JLabel balanceVal, weightVal, bpVal, savingVal, projectionVal;
 
     public DashboardPanel() {
         financeDao = new FinanceDao();
@@ -36,12 +39,12 @@ public class DashboardPanel extends JPanel {
         // 1. Header
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        JLabel title = new JLabel("Resumen General");
+        JLabel title = new JLabel("Resumen Inteligente");
         title.setFont(new Font("Arial", Font.BOLD, 28));
         title.setForeground(AppColors.TEXT_PRIMARY);
         header.add(title, BorderLayout.WEST);
         
-        JLabel welcome = new JLabel("Bienvenido de nuevo, Samuel");
+        JLabel welcome = new JLabel("Analizando tu salud financiera en tiempo real...");
         welcome.setFont(new Font("Arial", Font.PLAIN, 14));
         welcome.setForeground(AppColors.TEXT_SECONDARY);
         header.add(welcome, BorderLayout.SOUTH);
@@ -53,59 +56,107 @@ public class DashboardPanel extends JPanel {
         mainContent.setOpaque(false);
 
         // 2.1 Top KPI Row
-        JPanel kpiPanel = new JPanel(new GridLayout(1, 4, 20, 0));
+        kpiPanel = new JPanel(new GridLayout(1, 5, 15, 0));
         kpiPanel.setOpaque(false);
         
-        double balance = calculateBalance();
-        JPanel c1 = createKpiCard("Balance Neto", "$" + String.format("%,.0f", balance), "Total acumulado", AppColors.SUCCESS, "💰");
-        JPanel c2 = createKpiCard("Último Peso", getLastWeight() + " kg", "Registro reciente", AppColors.PRIMARY, "⚖️");
-        JPanel c3 = createKpiCard("Presión Arterial", getLastBP(), "Salud cardiovascular", AppColors.DANGER, "❤️");
-        JPanel c4 = createKpiCard("Ahorro Estimado", "$" + String.format("%,.0f", balance * 0.15), "15% del balance", AppColors.ACCENT, "📈");
-        
-        AnimationUtils.addHoverEffect(c1);
-        AnimationUtils.addHoverEffect(c2);
-        AnimationUtils.addHoverEffect(c3);
-        AnimationUtils.addHoverEffect(c4);
+        balanceVal = new JLabel("$---");
+        weightVal = new JLabel("--- kg");
+        bpVal = new JLabel("---");
+        savingVal = new JLabel("$---");
+        projectionVal = new JLabel("$---");
 
-        kpiPanel.add(c1);
-        kpiPanel.add(c2);
-        kpiPanel.add(c3);
-        kpiPanel.add(c4);
+        kpiPanel.add(createKpiCard("Balance Neto", balanceVal, "Disponible", AppColors.SUCCESS, "💰"));
+        kpiPanel.add(createKpiCard("Gasto Proyectado", projectionVal, "Estimado mes", AppColors.WARNING, "🔮"));
+        kpiPanel.add(createKpiCard("Último Peso", weightVal, "Salud Física", AppColors.PRIMARY, "⚖️"));
+        kpiPanel.add(createKpiCard("Presión Art.", bpVal, "Reciente", AppColors.DANGER, "❤️"));
+        kpiPanel.add(createKpiCard("Ahorro Sugerido", savingVal, "20% Sugerido", AppColors.ACCENT, "📈"));
         
         mainContent.add(kpiPanel, BorderLayout.NORTH);
 
         // 2.2 Charts Row
-        JPanel chartsPanel = new JPanel(new GridLayout(1, 2, 25, 0));
+        chartsPanel = new JPanel(new GridLayout(1, 2, 25, 0));
         chartsPanel.setOpaque(false);
-        
-        chartsPanel.add(createChartWrapper("Gastos por Categoría", createPieChart()));
-        chartsPanel.add(createChartWrapper("Evolución de Peso", createLineChart()));
-        
         mainContent.add(chartsPanel, BorderLayout.CENTER);
 
-        // 2.3 Recent Activity Sidebar (Optional but looks good)
-        JPanel activityPanel = createStyledPanel("Actividad Reciente");
+        // 2.3 Activity
+        activityPanel = createStyledPanel("Actividad Reciente");
         activityPanel.setPreferredSize(new Dimension(300, 0));
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-        List<FinanceRecord> recent = financeDao.getAllRecords().stream().limit(8).collect(java.util.stream.Collectors.toList());
-        for (FinanceRecord r : recent) {
-            listModel.addElement(String.format("• %s: %s $%.0f", r.getCategory(), r.getType().equals("Gasto") ? "-" : "+", r.getAmount()));
-        }
-        JList<String> list = new JList<>(listModel);
-        list.setFont(new Font("Arial", Font.PLAIN, 13));
-        list.setFixedCellHeight(35);
-        activityPanel.add(new JScrollPane(list), BorderLayout.CENTER);
         
         add(mainContent, BorderLayout.CENTER);
         add(activityPanel, BorderLayout.EAST);
+
+        refreshDataAsync();
     }
 
-    private JPanel createKpiCard(String title, String value, String sub, Color color, String icon) {
+    private void refreshDataAsync() {
+        new SwingWorker<Map<String, Object>, Void>() {
+            @Override
+            protected Map<String, Object> doInBackground() {
+                Map<String, Object> data = new HashMap<>();
+                List<FinanceRecord> financeRecords = financeDao.getAllRecords();
+                List<HealthRecord> healthRecords = healthDao.getAllRecords();
+
+                double ing = 0, gas = 0;
+                for (FinanceRecord r : financeRecords) {
+                    if ("Ingreso".equals(r.getType())) ing += r.getAmount();
+                    else gas += r.getAmount();
+                }
+                double balance = ing - gas;
+                
+                int dayOfMonth = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH);
+                double projection = (gas / dayOfMonth) * 30;
+
+                data.put("balance", balance);
+                data.put("projection", projection);
+                data.put("weight", healthRecords.isEmpty() ? 0.0 : healthRecords.get(healthRecords.size()-1).getWeight());
+                data.put("bp", healthRecords.isEmpty() ? "N/A" : healthRecords.get(healthRecords.size()-1).getBloodPressure());
+                data.put("recent", financeRecords.stream().limit(10).collect(java.util.stream.Collectors.toList()));
+                data.put("pie", createPieChart(financeRecords));
+                data.put("line", createLineChart(healthRecords));
+                
+                return data;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Map<String, Object> data = get();
+                    balanceVal.setText("$" + String.format("%,.0f", (Double)data.get("balance")));
+                    projectionVal.setText("$" + String.format("%,.0f", (Double)data.get("projection")));
+                    weightVal.setText(data.get("weight") + " kg");
+                    bpVal.setText((String)data.get("bp"));
+                    savingVal.setText("$" + String.format("%,.0f", (Double)data.get("balance") * 0.20));
+
+                    chartsPanel.removeAll();
+                    chartsPanel.add(createChartWrapper("Gastos por Categoría", (JFreeChart)data.get("pie")));
+                    chartsPanel.add(createChartWrapper("Evolución de Peso", (JFreeChart)data.get("line")));
+                    
+                    DefaultListModel<String> listModel = new DefaultListModel<>();
+                    List<FinanceRecord> recent = (List<FinanceRecord>)data.get("recent");
+                    for (FinanceRecord r : recent) {
+                        listModel.addElement(String.format("• %s: %s $%.0f", r.getCategory(), r.getType().equals("Gasto") ? "-" : "+", r.getAmount()));
+                    }
+                    JList<String> list = new JList<>(listModel);
+                    list.setFont(new Font("Arial", Font.PLAIN, 13));
+                    activityPanel.removeAll();
+                    JLabel actTitle = new JLabel("Actividad Reciente");
+                    actTitle.setFont(new Font("Arial", Font.BOLD, 16));
+                    activityPanel.add(actTitle, BorderLayout.NORTH);
+                    activityPanel.add(new JScrollPane(list), BorderLayout.CENTER);
+                    
+                    revalidate();
+                    repaint();
+                } catch (Exception e) {}
+            }
+        }.execute();
+    }
+
+    private JPanel createKpiCard(String title, JLabel valueLbl, String sub, Color color, String icon) {
         JPanel card = new JPanel(new BorderLayout(15, 5));
         card.setBackground(AppColors.SURFACE);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(AppColors.BORDER, 1, true),
-            new EmptyBorder(20, 20, 20, 20)
+            new EmptyBorder(15, 15, 15, 15)
         ));
 
         JLabel iconLbl = new JLabel(icon);
@@ -116,19 +167,19 @@ public class DashboardPanel extends JPanel {
         JPanel text = new JPanel(new GridLayout(3, 1));
         text.setOpaque(false);
         JLabel tLbl = new JLabel(title);
-        tLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        tLbl.setFont(new Font("Arial", Font.PLAIN, 12));
         tLbl.setForeground(AppColors.TEXT_SECONDARY);
-        JLabel vLbl = new JLabel(value);
-        vLbl.setFont(new Font("Arial", Font.BOLD, 22));
-        vLbl.setForeground(AppColors.TEXT_PRIMARY);
+        valueLbl.setFont(new Font("Arial", Font.BOLD, 18));
+        valueLbl.setForeground(AppColors.TEXT_PRIMARY);
         JLabel sLbl = new JLabel(sub);
         sLbl.setFont(new Font("Arial", Font.PLAIN, 11));
         sLbl.setForeground(AppColors.TEXT_LIGHT);
 
         text.add(tLbl);
-        text.add(vLbl);
+        text.add(valueLbl);
         text.add(sLbl);
         card.add(text, BorderLayout.CENTER);
+        AnimationUtils.addHoverEffect(card);
         return card;
     }
 
@@ -154,10 +205,10 @@ public class DashboardPanel extends JPanel {
         return p;
     }
 
-    private JFreeChart createPieChart() {
+    private JFreeChart createPieChart(List<FinanceRecord> records) {
         DefaultPieDataset<String> dataset = new DefaultPieDataset<>();
         Map<String, Double> data = new HashMap<>();
-        financeDao.getAllRecords().stream()
+        records.stream()
             .filter(r -> "Gasto".equals(r.getType()))
             .forEach(r -> data.put(r.getCategory(), data.getOrDefault(r.getCategory(), 0.0) + r.getAmount()));
         
@@ -167,10 +218,8 @@ public class DashboardPanel extends JPanel {
         return chart;
     }
 
-    private JFreeChart createLineChart() {
+    private JFreeChart createLineChart(List<HealthRecord> records) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        List<HealthRecord> records = healthDao.getAllRecords();
-        // Show last 10 records for better flow
         for (int i = Math.max(0, records.size() - 10); i < records.size(); i++) {
             HealthRecord r = records.get(i);
             dataset.addValue(r.getWeight(), "Peso", r.getDate().substring(5, 10));
@@ -178,21 +227,5 @@ public class DashboardPanel extends JPanel {
         JFreeChart chart = ChartFactory.createLineChart("", "Fecha", "kg", dataset, PlotOrientation.VERTICAL, false, true, false);
         ChartUtils.applyPremiumStyle(chart);
         return chart;
-    }
-
-    private double calculateBalance() {
-        return financeDao.getAllRecords().stream()
-            .mapToDouble(r -> "Ingreso".equals(r.getType()) ? r.getAmount() : -r.getAmount())
-            .sum();
-    }
-
-    private String getLastWeight() {
-        List<HealthRecord> records = healthDao.getAllRecords();
-        return records.isEmpty() ? "0" : String.valueOf(records.get(0).getWeight());
-    }
-
-    private String getLastBP() {
-        List<HealthRecord> records = healthDao.getAllRecords();
-        return records.isEmpty() ? "N/A" : records.get(0).getBloodPressure();
     }
 }
