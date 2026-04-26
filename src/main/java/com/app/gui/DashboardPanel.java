@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import com.app.utils.AppColors;
-import com.app.utils.ChartUtils;
 import com.app.utils.AnimationUtils;
 
 public class DashboardPanel extends JPanel {
@@ -156,7 +155,7 @@ public class DashboardPanel extends JPanel {
     }
 
     private JFreeChart createPieChart() {
-        DefaultPieDataset dataset = new DefaultPieDataset();
+        DefaultPieDataset<String> dataset = new DefaultPieDataset<>();
         Map<String, Double> data = new HashMap<>();
         financeDao.getAllRecords().stream()
             .filter(r -> "Gasto".equals(r.getType()))

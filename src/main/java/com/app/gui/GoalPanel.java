@@ -172,7 +172,6 @@ public class GoalPanel extends JPanel {
 
     class GoalCard extends JPanel {
         private final GoalRecord goal;
-        private double animatedProgress = 0;
         private final ModernProgressBar progressBar;
 
         public GoalCard(GoalRecord g) {
@@ -246,7 +245,6 @@ public class GoalPanel extends JPanel {
 
             // Start progress animation
             AnimationUtils.animateValue(0, pct, 1200, val -> {
-                animatedProgress = val;
                 progressBar.setProgress(val);
             });
             
@@ -269,7 +267,6 @@ public class GoalPanel extends JPanel {
 
             int w = getWidth();
             int h = getHeight();
-            int r = h / 2;
 
             // Background track
             g2.setColor(new Color(240, 242, 245));

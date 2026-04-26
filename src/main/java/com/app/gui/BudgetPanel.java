@@ -7,18 +7,15 @@ import com.app.models.FinanceRecord;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PiePlot;
 import org.jfree.data.general.DefaultPieDataset;
 import com.app.utils.ChartUtils;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 import com.app.utils.AppColors;
-import com.app.utils.ChartUtils;
 import com.app.utils.AnimationUtils;
 
 public class BudgetPanel extends JPanel {
@@ -329,7 +326,7 @@ public class BudgetPanel extends JPanel {
 
     private void updateChart(List<BudgetRecord> budgets) {
         chartContainer.removeAll();
-        DefaultPieDataset dataset = new DefaultPieDataset();
+        DefaultPieDataset<String> dataset = new DefaultPieDataset<>();
         for (BudgetRecord b : budgets) {
             dataset.setValue(b.getCategory(), b.getLimitAmount());
         }

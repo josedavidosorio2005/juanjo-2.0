@@ -1,15 +1,37 @@
 package com.app;
 
 import com.app.db.DatabaseManager;
-import com.app.gui.*;
+import com.app.gui.BudgetPanel;
+import com.app.gui.DashboardPanel;
+import com.app.gui.FinancePanel;
+import com.app.gui.GoalPanel;
+import com.app.gui.HealthPanel;
+import com.app.gui.HomeFinancePanel;
+import com.app.gui.LoginFrame;
+import com.app.gui.ReportsPanel;
+import com.app.gui.SettingsPanel;
 import com.app.services.CronJobDaemon;
+import com.app.utils.AnimationUtils;
+import com.app.utils.AppColors;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import java.awt.*;
-import javax.swing.*;
-import com.app.utils.AppColors;
-import com.app.utils.AnimationUtils;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class MainApplication {
 

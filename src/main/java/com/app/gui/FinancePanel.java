@@ -19,7 +19,7 @@ public class FinancePanel extends JPanel {
     
     private JTextField montoField, fechaField;
     private JComboBox<String> categoriaCombo, cuentaCombo, metodoPagoCombo, recurrenteCombo, tipoCombo;
-    private JTextArea descArea, fuenteArea;
+    private JTextArea descArea;
     
     private JLabel saldoVal, ingresosVal, gastosVal, ahorroVal;
 

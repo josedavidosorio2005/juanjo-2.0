@@ -39,14 +39,15 @@ public class ChartUtils {
 
         Plot plot = chart.getPlot();
         if (plot instanceof PiePlot) {
-            PiePlot pie = (PiePlot) plot;
+            @SuppressWarnings("unchecked")
+            PiePlot<String> pie = (PiePlot<String>) plot;
             pie.setLabelGenerator(null);
             pie.setShadowPaint(null);
             pie.setSectionOutlinesVisible(false);
             
             int i = 0;
-            for (Object key : pie.getDataset().getKeys()) {
-                pie.setSectionPaint((Comparable) key, PALETTE[i % PALETTE.length]);
+            for (String key : pie.getDataset().getKeys()) {
+                pie.setSectionPaint(key, PALETTE[i % PALETTE.length]);
                 i++;
             }
 
