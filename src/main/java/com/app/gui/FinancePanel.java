@@ -5,266 +5,267 @@ import com.app.dao.FinanceDao;
 import com.app.models.FinanceRecord;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import com.app.utils.AppColors;
 
 public class FinancePanel extends JPanel {
     private FinanceDao financeDao;
-    private FinanceController controller; // MVC Approach
+    private FinanceController controller;
     
-    // UI Elements
     private JTextField montoField, fechaField;
     private JComboBox<String> categoriaCombo, cuentaCombo, metodoPagoCombo, recurrenteCombo, tipoCombo;
     private JTextArea descArea, fuenteArea;
     
-    private JLabel saldoLabel, ingresosTopLabel, gastosTopLabel, ahorroLabel;
-    private JLabel resIngresosLabel, resGastosLabel, resBalanceLabel;
+    private JLabel saldoVal, ingresosVal, gastosVal, ahorroVal;
 
     public FinancePanel() {
         financeDao = new FinanceDao();
         controller = new FinanceController();
-        setLayout(new BorderLayout(15, 15));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout(25, 25));
+        setBackground(AppColors.BG_MAIN);
+        setBorder(new EmptyBorder(25, 25, 25, 25));
 
-        // 1. TOP KPI CARDS
-        JPanel topCards = new JPanel(new GridLayout(1, 4, 15, 0));
-        saldoLabel = new JLabel("...", SwingConstants.CENTER);
-        ingresosTopLabel = new JLabel("...", SwingConstants.CENTER);
-        gastosTopLabel = new JLabel("...", SwingConstants.CENTER);
-        ahorroLabel = new JLabel("...", SwingConstants.CENTER);
+        // 1. Header
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        JLabel title = new JLabel("Gestión de Finanzas");
+        title.setFont(new Font("Arial", Font.BOLD, 28));
+        title.setForeground(AppColors.TEXT_PRIMARY);
+        header.add(title, BorderLayout.WEST);
         
-        topCards.add(createModernCard("Saldo", saldoLabel, new Color(46, 204, 113)));
-        topCards.add(createModernCard("Total Ingreso", ingresosTopLabel, new Color(52, 152, 219)));
-        topCards.add(createModernCard("Total de Gastos", gastosTopLabel, new Color(231, 76, 60)));
-        topCards.add(createModernCard("Ahorro", ahorroLabel, new Color(0, 206, 209)));
-        
-        add(topCards, BorderLayout.NORTH);
+        JButton btnHistory = new JButton("📅 Ver Historial Completo");
+        btnHistory.addActionListener(e -> showHistoryDialog());
+        header.add(btnHistory, BorderLayout.EAST);
+        add(header, BorderLayout.NORTH);
 
-        // 2. CENTER CONTENT (Form + Right Resumen)
-        JPanel centerPanel = new JPanel(new BorderLayout(20, 0));
+        // 2. KPI Row
+        JPanel kpiRow = new JPanel(new GridLayout(1, 4, 20, 0));
+        kpiRow.setOpaque(false);
         
-        // --- 2.1 Formularies (Left Side) ---
-        JPanel formContainer = new JPanel();
-        formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
+        saldoVal = new JLabel("$0");
+        ingresosVal = new JLabel("$0");
+        gastosVal = new JLabel("$0");
+        ahorroVal = new JLabel("$0");
 
-        // TIPO SECTION
-        JPanel tipoSection = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        tipoSection.add(new JLabel("Tipo de Transacción:"));
+        kpiRow.add(createKpiCard("Saldo Disponible", saldoVal, AppColors.SUCCESS, "💰"));
+        kpiRow.add(createKpiCard("Ingresos Totales", ingresosVal, AppColors.PRIMARY, "📥"));
+        kpiRow.add(createKpiCard("Gastos Totales", gastosVal, AppColors.DANGER, "📤"));
+        kpiRow.add(createKpiCard("Ahorro (20%)", ahorroVal, AppColors.ACCENT, "🏦"));
+        
+        // 3. Central Body (Form + Summary)
+        JPanel mainBody = new JPanel(new BorderLayout(25, 0));
+        mainBody.setOpaque(false);
+
+        // 3.1 Form Side
+        JPanel formWrapper = createStyledPanel("Registrar Nueva Transacción");
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.weightx = 1.0;
+
+        // Row 1: Tipo & Monto
+        gbc.gridx = 0; gbc.gridy = 0;
+        form.add(new JLabel("Tipo:"), gbc);
+        gbc.gridx = 1;
         tipoCombo = new JComboBox<>(new String[]{"Gasto", "Ingreso"});
-        tipoSection.add(tipoCombo);
+        form.add(tipoCombo, gbc);
         
-        // BOTON IA OCR
-        JButton btnOcr = new JButton("📷 Auto-Escanear Recibo (IA)");
-        btnOcr.setBackground(new Color(241, 196, 15));
-        btnOcr.setForeground(Color.BLACK);
-        btnOcr.addActionListener(e -> runOcrScan());
-        tipoSection.add(Box.createRigidArea(new Dimension(30, 0)));
-        tipoSection.add(btnOcr);
-        
-        formContainer.add(tipoSection);
-
-        // INFO BASICA
-        JPanel basicInfo = new JPanel(new GridLayout(4, 2, 15, 15));
-        basicInfo.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Información Básica", TitledBorder.LEFT, TitledBorder.TOP, new Font("Arial", Font.BOLD, 14)));
-        
-        basicInfo.add(new JLabel("Monto:"));
-        basicInfo.add(new JLabel("Fecha (ej: yyyy-mm-dd):"));
+        gbc.gridx = 2;
+        form.add(new JLabel("Monto ($):"), gbc);
+        gbc.gridx = 3;
         montoField = new JTextField();
+        form.add(montoField, gbc);
+
+        // Row 2: Fecha & Categoría
+        gbc.gridx = 0; gbc.gridy = 1;
+        form.add(new JLabel("Fecha:"), gbc);
+        gbc.gridx = 1;
         fechaField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
-        basicInfo.add(montoField);
-        basicInfo.add(fechaField);
+        form.add(fechaField, gbc);
+        
+        gbc.gridx = 2;
+        form.add(new JLabel("Categoría:"), gbc);
+        gbc.gridx = 3;
+        categoriaCombo = new JComboBox<>(new String[]{"Alimentos", "Transporte", "Casa", "Ocio", "Salud", "Educación", "Salario", "Freelance"});
+        form.add(categoriaCombo, gbc);
 
-        basicInfo.add(new JLabel("Categoría:"));
-        basicInfo.add(new JLabel("Cuenta (opcional):"));
-        categoriaCombo = new JComboBox<>(new String[]{"Alimentos", "Transporte", "Casa", "Ocio", "Salud", "Educación", "Salario", "Inversión"});
-        cuentaCombo = new JComboBox<>(new String[]{"Efectivo", "Cuenta Bancaria", "Tarjeta de Crédito", "Ahorros"});
-        basicInfo.add(categoriaCombo);
-        basicInfo.add(cuentaCombo);
+        // Row 3: Cuenta & Método
+        gbc.gridx = 0; gbc.gridy = 2;
+        form.add(new JLabel("Cuenta:"), gbc);
+        gbc.gridx = 1;
+        cuentaCombo = new JComboBox<>(new String[]{"Banco Principal", "Efectivo", "Ahorros", "Tarjeta Crédito"});
+        form.add(cuentaCombo, gbc);
+        
+        gbc.gridx = 2;
+        form.add(new JLabel("Método:"), gbc);
+        gbc.gridx = 3;
+        metodoPagoCombo = new JComboBox<>(new String[]{"Transferencia", "Efectivo", "Tarjeta", "Débito"});
+        form.add(metodoPagoCombo, gbc);
 
-        basicInfo.add(new JLabel("Descripción:"));
-        basicInfo.add(new JLabel("Fuente / Etiqueta (opcional):"));
+        // Row 4: Descripción (Full Width)
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1;
+        form.add(new JLabel("Descripción:"), gbc);
+        gbc.gridx = 1; gbc.gridwidth = 3;
         descArea = new JTextArea(2, 20);
-        fuenteArea = new JTextArea(2, 20);
-        basicInfo.add(new JScrollPane(descArea));
-        basicInfo.add(new JScrollPane(fuenteArea));
-        
-        formContainer.add(basicInfo);
-        formContainer.add(Box.createRigidArea(new Dimension(0, 15)));
+        form.add(new JScrollPane(descArea), gbc);
 
-        // INFO ADICIONAL
-        JPanel addInfo = new JPanel(new GridLayout(2, 2, 15, 15));
-        addInfo.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Información Adicional"));
-        addInfo.add(new JLabel("Método de pago:"));
-        addInfo.add(new JLabel("¿Es recurrente?"));
-        metodoPagoCombo = new JComboBox<>(new String[]{"Débito", "Crédito", "Transferencia", "Efectivo", "Cripto"});
-        recurrenteCombo = new JComboBox<>(new String[]{"No es recurrente", "Diario", "Semanal", "Mensual", "Anual"});
-        addInfo.add(metodoPagoCombo);
-        addInfo.add(recurrenteCombo);
+        // Row 5: Recurrente & OCR
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 1;
+        form.add(new JLabel("Recurrente:"), gbc);
+        gbc.gridx = 1;
+        recurrenteCombo = new JComboBox<>(new String[]{"No", "Mensual", "Semanal"});
+        form.add(recurrenteCombo, gbc);
+        
+        gbc.gridx = 2; gbc.gridwidth = 2;
+        JButton btnOcr = new JButton("📸 Escanear Ticket con IA");
+        btnOcr.setBackground(new Color(241, 196, 15));
+        btnOcr.addActionListener(e -> runOcrScan());
+        form.add(btnOcr, gbc);
 
-        formContainer.add(addInfo);
-        centerPanel.add(formContainer, BorderLayout.CENTER);
-
-        // --- 2.2 Resumen del mes (Right Side) ---
-        JPanel rightSummary = new JPanel(new GridLayout(4, 1, 10, 10));
-        rightSummary.setPreferredSize(new Dimension(250, 0));
-        rightSummary.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(52, 152, 219)), "Resumen del mes"));
-        rightSummary.setBackground(new Color(41, 128, 185, 30)); 
+        formWrapper.add(form, BorderLayout.CENTER);
         
-        resIngresosLabel = new JLabel("Ingresos: $0.00");
-        resGastosLabel = new JLabel("Gastos: $0.00");
-        resBalanceLabel = new JLabel("Balance: $0.00");
-        
-        resIngresosLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        resGastosLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        resBalanceLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        
-        rightSummary.add(resIngresosLabel);
-        rightSummary.add(resGastosLabel);
-        rightSummary.add(new JLabel("--------------------"));
-        rightSummary.add(resBalanceLabel);
-        
-        centerPanel.add(rightSummary, BorderLayout.EAST);
-        
-        add(centerPanel, BorderLayout.CENTER);
-
-        // 3. BOTTOM BUTTONS
-        JPanel bottomContainer = new JPanel();
-        bottomContainer.setLayout(new BoxLayout(bottomContainer, BoxLayout.Y_AXIS));
-        
-        JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        JButton btnCancel = styleButton("Cancelar", new Color(231, 76, 60));
-        JButton btnSaveNew = styleButton("Guardar y Nuevo", new Color(52, 152, 219));
-        JButton btnSave = styleButton("Guardar Transacción", new Color(155, 89, 182)); 
-        
+        // Buttons Footer
+        JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        actionBtns.setOpaque(false);
+        JButton btnClear = new JButton("Limpiar");
+        btnClear.addActionListener(e -> clearForm());
+        JButton btnSave = new JButton("💾 Guardar Transacción");
+        btnSave.setBackground(AppColors.PRIMARY);
+        btnSave.setForeground(AppColors.SURFACE);
+        btnSave.setFont(new Font("Arial", Font.BOLD, 14));
         btnSave.addActionListener(e -> saveRecord(false));
-        btnSaveNew.addActionListener(e -> saveRecord(true));
-        btnCancel.addActionListener(e -> clearForm());
         
-        actionBtns.add(btnCancel);
-        actionBtns.add(btnSaveNew);
+        actionBtns.add(btnClear);
         actionBtns.add(btnSave);
-        bottomContainer.add(actionBtns);
+        formWrapper.add(actionBtns, BorderLayout.SOUTH);
 
-        // Accesos Rápidos
-        JPanel quickAccess = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        quickAccess.setBorder(BorderFactory.createTitledBorder("Accesos Rápidos"));
-        JButton btnHistorial = styleButton("Ver Historial Base de Datos", new Color(46, 204, 113));
-        btnHistorial.addActionListener(e -> showHistoryDialog());
-        quickAccess.add(btnHistorial);
-        bottomContainer.add(quickAccess);
+        mainBody.add(formWrapper, BorderLayout.CENTER);
+
+        // 3.2 Right Summary Side
+        JPanel summarySide = createStyledPanel("Consejos Inteligentes");
+        summarySide.setPreferredSize(new Dimension(300, 0));
+        JTextPane tips = new JTextPane();
+        tips.setEditable(false);
+        tips.setText("\n💡 Tip del día:\nHas gastado un 15% más en 'Comida' que el mes pasado.\n\n🎯 Meta:\nSi ahorras $200k más este mes, alcanzarás tu meta 'Viaje a Japón' en 3 meses.");
+        tips.setFont(new Font("Arial", Font.PLAIN, 14));
+        summarySide.add(tips, BorderLayout.CENTER);
         
-        add(bottomContainer, BorderLayout.SOUTH);
+        mainBody.add(summarySide, BorderLayout.EAST);
+
+        // Assemble Top Content
+        JPanel topContent = new JPanel(new BorderLayout(0, 25));
+        topContent.setOpaque(false);
+        topContent.add(kpiRow, BorderLayout.NORTH);
+        topContent.add(mainBody, BorderLayout.CENTER);
+        
+        add(topContent, BorderLayout.CENTER);
 
         refreshMetrics();
     }
 
-    private void runOcrScan() {
-        // Dispara la simulación de lectura de ticket vía MVC
-        String[] extracted = controller.simulateOcrScan();
-        JOptionPane.showMessageDialog(this, "Escaneando imagen...", "Procesando IA", JOptionPane.INFORMATION_MESSAGE);
-        montoField.setText(extracted[0]);
-        categoriaCombo.setSelectedItem(extracted[1]);
-        descArea.setText(extracted[2]);
-    }
-
-    private JPanel createModernCard(String title, JLabel valueLabel, Color borderColor) {
-        JPanel card = new JPanel(new BorderLayout(5, 5));
+    private JPanel createKpiCard(String title, JLabel valueLbl, Color color, String icon) {
+        JPanel card = new JPanel(new BorderLayout(10, 5));
+        card.setBackground(AppColors.SURFACE);
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(borderColor, 2),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(AppColors.BORDER, 1, true),
+            new EmptyBorder(15, 15, 15, 15)
         ));
-        JLabel t = new JLabel(title, SwingConstants.CENTER);
-        t.setFont(new Font("Arial", Font.PLAIN, 14));
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        card.add(t, BorderLayout.NORTH);
-        card.add(valueLabel, BorderLayout.CENTER);
+
+        JLabel iconLbl = new JLabel(icon);
+        iconLbl.setFont(new Font("Arial", Font.PLAIN, 24));
+        iconLbl.setOpaque(true);
+        iconLbl.setBackground(AppColors.withAlpha(color, 30));
+        iconLbl.setForeground(color);
+        iconLbl.setPreferredSize(new Dimension(50, 50));
+        iconLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        card.add(iconLbl, BorderLayout.WEST);
+
+        JPanel text = new JPanel(new GridLayout(2, 1));
+        text.setOpaque(false);
+        JLabel tLbl = new JLabel(title);
+        tLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        tLbl.setForeground(AppColors.TEXT_SECONDARY);
+        valueLbl.setFont(new Font("Arial", Font.BOLD, 18));
+        valueLbl.setForeground(AppColors.TEXT_PRIMARY);
+        text.add(tLbl);
+        text.add(valueLbl);
+        card.add(text, BorderLayout.CENTER);
         return card;
     }
 
-    private JButton styleButton(String text, Color bg) {
-        JButton b = new JButton(text);
-        b.setBackground(bg);
-        b.setForeground(Color.WHITE);
-        b.setFocusPainted(false);
-        b.setFont(new Font("Arial", Font.BOLD, 13));
-        return b;
+    private JPanel createStyledPanel(String title) {
+        JPanel p = new JPanel(new BorderLayout(0, 15));
+        p.setBackground(AppColors.SURFACE);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(AppColors.BORDER, 1, true),
+            new EmptyBorder(20, 20, 20, 20)
+        ));
+        JLabel t = new JLabel(title);
+        t.setFont(new Font("Arial", Font.BOLD, 18));
+        t.setForeground(AppColors.TEXT_PRIMARY);
+        p.add(t, BorderLayout.NORTH);
+        return p;
+    }
+
+    private void runOcrScan() {
+        String[] extracted = controller.simulateOcrScan();
+        montoField.setText(extracted[0]);
+        categoriaCombo.setSelectedItem(extracted[1]);
+        descArea.setText(extracted[2]);
     }
 
     private void clearForm() {
         montoField.setText("");
         fechaField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
         descArea.setText("");
-        fuenteArea.setText("");
         categoriaCombo.setSelectedIndex(0);
-        cuentaCombo.setSelectedIndex(0);
-        metodoPagoCombo.setSelectedIndex(0);
-        recurrenteCombo.setSelectedIndex(0);
-        tipoCombo.setSelectedIndex(0);
     }
 
     private void saveRecord(boolean keepOpen) {
-        String tipo = (String) tipoCombo.getSelectedItem();
         String am = montoField.getText();
         String date = fechaField.getText();
         String cat = (String) categoriaCombo.getSelectedItem();
         String acc = (String) cuentaCombo.getSelectedItem();
         String desc = descArea.getText();
-        String tag = fuenteArea.getText();
         String method = (String) metodoPagoCombo.getSelectedItem();
-        boolean isRec = !((String)recurrenteCombo.getSelectedItem()).equals("No es recurrente");
+        boolean isRec = !((String)recurrenteCombo.getSelectedItem()).equals("No");
+        String tipo = (String) tipoCombo.getSelectedItem();
 
-        // MVC Approach: The controller decides if the transaction raises alarms and actually persists it.
-        boolean success = controller.processAndSaveTransaction(this, am, date, cat, acc, desc, tag, method, isRec, tipo);
-        
-        if (success) {
+        if (controller.processAndSaveTransaction(this, am, date, cat, acc, desc, "", method, isRec, tipo)) {
             refreshMetrics();
-            if (keepOpen) {
-                clearForm();
-                JOptionPane.showMessageDialog(this, "Guardado exitosamente. Puede registrar otra.");
-            } else {
-                JOptionPane.showMessageDialog(this, "Transacción guardada correctamente.");
-            }
+            clearForm();
+            JOptionPane.showMessageDialog(this, "Transacción guardada correctamente.");
         }
     }
 
     private void refreshMetrics() {
         List<FinanceRecord> records = financeDao.getAllRecords();
         double ing = 0, gas = 0;
-        
         for (FinanceRecord r : records) {
             if ("Ingreso".equals(r.getType())) ing += r.getAmount();
             else gas += r.getAmount();
         }
-        
         double bal = ing - gas;
-        
-        saldoLabel.setText("$" + String.format("%.2f", bal));
-        ingresosTopLabel.setText("$" + String.format("%.2f", ing));
-        gastosTopLabel.setText("$" + String.format("%.2f", gas));
-        ahorroLabel.setText("$" + String.format("%.2f", (ing * 0.20)));
-        
-        resIngresosLabel.setText(String.format("Ingresos: $%.2f", ing));
-        resGastosLabel.setText(String.format("Gastos: $%.2f", gas));
-        resBalanceLabel.setText(String.format("Balance: $%.2f", bal));
+        saldoVal.setText("$" + String.format("%,.0f", bal));
+        ingresosVal.setText("$" + String.format("%,.0f", ing));
+        gastosVal.setText("$" + String.format("%,.0f", gas));
+        ahorroVal.setText("$" + String.format("%,.0f", ing * 0.20));
     }
     
     private void showHistoryDialog() {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Historial de Transacciones", true);
-        dialog.setSize(900, 500);
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Historial", true);
+        dialog.setSize(800, 500);
         dialog.setLocationRelativeTo(this);
-        
-        String[] columns = {"ID", "Fecha", "Tipo", "Monto", "Categoría", "Cuenta", "Descripción", "Recurrente"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-        
-        List<FinanceRecord> records = financeDao.getAllRecords();
-        for (FinanceRecord r : records) {
-            model.addRow(new Object[]{r.getId(), r.getDate(), r.getType(), r.getAmount(), r.getCategory(), r.getAccount(), r.getDescription(), r.isRecurring() ? "Sí" : "No"});
-        }
-        
+        String[] cols = {"Fecha", "Tipo", "Monto", "Categoría", "Descripción"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0);
+        financeDao.getAllRecords().forEach(r -> model.addRow(new Object[]{r.getDate(), r.getType(), r.getAmount(), r.getCategory(), r.getDescription()}));
         dialog.add(new JScrollPane(new JTable(model)));
         dialog.setVisible(true);
     }

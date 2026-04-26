@@ -6,8 +6,10 @@ import com.app.services.CronJobDaemon;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
+import com.app.utils.AppColors;
+import com.app.utils.AnimationUtils;
 
 public class MainApplication {
 
@@ -41,33 +43,40 @@ public class MainApplication {
 
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(new Color(34, 47, 62)); 
-        sidebar.setPreferredSize(new Dimension(220, 0));
+        sidebar.setBackground(AppColors.BG_SIDEBAR); 
+        sidebar.setPreferredSize(new Dimension(240, 0));
         sidebar.setBorder(BorderFactory.createEmptyBorder(30, 15, 30, 15));
 
-        JLabel titleLabel = new JLabel("Menú Principal");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        JLabel titleLabel = new JLabel("FINANZAS PRO");
+        titleLabel.setForeground(AppColors.SURFACE);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 22));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         sidebar.add(titleLabel);
+        
+        JLabel subtitle = new JLabel("Enterprise Edition");
+        subtitle.setForeground(AppColors.TEXT_LIGHT);
+        subtitle.setFont(new Font("Arial", Font.PLAIN, 12));
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebar.add(subtitle);
+        
         sidebar.add(Box.createRigidArea(new Dimension(0, 40)));
 
-        sidebar.add(createSidebarButton(" Inicio", "dashboard"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Gastos", "finances"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Presupuesto", "budget"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Metas", "goals"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Finanzas del Hogar", "home_finances"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Reportes", "reports"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
-        sidebar.add(createSidebarButton(" Configuración", "settings"));
+        sidebar.add(createSidebarButton("🏠  Inicio", "dashboard"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("💸  Gastos", "finances"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("📊  Presupuesto", "budget"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("🚀  Metas", "goals"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("🏠  Hogar", "home_finances"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("📈  Reportes", "reports"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createSidebarButton("⚙️  Configuración", "settings"));
         
         sidebar.add(Box.createRigidArea(new Dimension(0, 30)));
-        sidebar.add(createSidebarButton(" + Salud Integral", "health"));
+        sidebar.add(createSidebarButton("❤️  Salud Integral", "health"));
         sidebar.add(Box.createVerticalGlue()); 
         
         JButton themeBtn = new JButton("Modo Oscuro / Claro");
@@ -100,21 +109,35 @@ public class MainApplication {
 
     private static JButton createSidebarButton(String text, String cardName) {
         JButton btn = new JButton(text);
-        btn.setMaximumSize(new Dimension(200, 40));
+        btn.setMaximumSize(new Dimension(210, 45));
+        btn.setPreferredSize(new Dimension(210, 45));
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setForeground(AppColors.TEXT_LIGHT);
+        btn.setBackground(AppColors.BG_SIDEBAR);
         btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         btn.addActionListener(e -> {
-            if (cardName.equals("dashboard")) cardsContainer.add(new DashboardPanel(), "dashboard");
-            else if (cardName.equals("finances")) cardsContainer.add(new FinancePanel(), "finances");
-            else if (cardName.equals("budget")) cardsContainer.add(new BudgetPanel(), "budget");
-            else if (cardName.equals("goals")) cardsContainer.add(new GoalPanel(), "goals");
-            else if (cardName.equals("home_finances")) cardsContainer.add(new HomeFinancePanel(), "home_finances");
-            else if (cardName.equals("reports")) cardsContainer.add(new ReportsPanel(), "reports");
+            JPanel panel = null;
+            if (cardName.equals("dashboard")) panel = new DashboardPanel();
+            else if (cardName.equals("finances")) panel = new FinancePanel();
+            else if (cardName.equals("budget")) panel = new BudgetPanel();
+            else if (cardName.equals("goals")) panel = new GoalPanel();
+            else if (cardName.equals("home_finances")) panel = new HomeFinancePanel();
+            else if (cardName.equals("reports")) panel = new ReportsPanel();
+            else if (cardName.equals("health")) panel = new HealthPanel();
             
-            cardLayout.show(cardsContainer, cardName);
+            if (panel != null) {
+                cardsContainer.add(panel, cardName);
+                cardLayout.show(cardsContainer, cardName);
+                // Innovative Slide-Up Transition
+                AnimationUtils.slideIn(panel, 30, 300);
+            } else {
+                cardLayout.show(cardsContainer, cardName);
+            }
         });
         return btn;
     }

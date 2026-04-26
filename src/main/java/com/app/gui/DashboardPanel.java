@@ -7,14 +7,20 @@ import com.app.models.HealthRecord;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
+import com.app.utils.ChartUtils;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import com.app.utils.AppColors;
+import com.app.utils.ChartUtils;
+import com.app.utils.AnimationUtils;
 
 public class DashboardPanel extends JPanel {
     private FinanceDao financeDao;
@@ -24,117 +30,170 @@ public class DashboardPanel extends JPanel {
         financeDao = new FinanceDao();
         healthDao = new HealthDao();
 
-        setLayout(new BorderLayout(15, 15));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout(20, 20));
+        setBackground(AppColors.BG_MAIN);
+        setBorder(new EmptyBorder(30, 30, 30, 30));
 
-        // Top Panel: KPI Cards
-        JPanel kpiPanel = new JPanel(new GridLayout(1, 3, 15, 15));
-        kpiPanel.add(createKpiCard("Balance Total", "$" + String.format("%.2f", calculateBalance()), new Color(46, 204, 113)));
-        kpiPanel.add(createKpiCard("Último Peso", getLastWeight() + " kg", new Color(52, 152, 219)));
-        kpiPanel.add(createKpiCard("Presión Arterial", getLastBP(), new Color(231, 76, 60)));
-        add(kpiPanel, BorderLayout.NORTH);
-
-        // Center Panel: Charts
-        JPanel chartsPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        // 1. Header
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        JLabel title = new JLabel("Resumen General");
+        title.setFont(new Font("Arial", Font.BOLD, 28));
+        title.setForeground(AppColors.TEXT_PRIMARY);
+        header.add(title, BorderLayout.WEST);
         
-        // 1. Finance Pie Chart
-        JFreeChart pieChart = ChartFactory.createPieChart(
-                "Gastos por Categoría",
-                createExpenseDataset(),
-                true, true, false);
-        pieChart.setBackgroundPaint(new Color(0,0,0,0)); 
-        ChartPanel piePanel = new ChartPanel(pieChart);
-        piePanel.setPreferredSize(new Dimension(350, 300));
-        chartsPanel.add(piePanel);
+        JLabel welcome = new JLabel("Bienvenido de nuevo, Samuel");
+        welcome.setFont(new Font("Arial", Font.PLAIN, 14));
+        welcome.setForeground(AppColors.TEXT_SECONDARY);
+        header.add(welcome, BorderLayout.SOUTH);
+        
+        add(header, BorderLayout.NORTH);
 
-        // 2. Health Line Chart
-        JFreeChart lineChart = ChartFactory.createLineChart(
-                "Progreso de Peso",
-                "Fecha",
-                "Peso (kg)",
-                createWeightDataset());
-        lineChart.setBackgroundPaint(new Color(0,0,0,0));
-        ChartPanel linePanel = new ChartPanel(lineChart);
-        linePanel.setPreferredSize(new Dimension(350, 300));
-        chartsPanel.add(linePanel);
+        // 2. Main Content
+        JPanel mainContent = new JPanel(new BorderLayout(25, 25));
+        mainContent.setOpaque(false);
 
-        add(chartsPanel, BorderLayout.CENTER);
+        // 2.1 Top KPI Row
+        JPanel kpiPanel = new JPanel(new GridLayout(1, 4, 20, 0));
+        kpiPanel.setOpaque(false);
+        
+        double balance = calculateBalance();
+        JPanel c1 = createKpiCard("Balance Neto", "$" + String.format("%,.0f", balance), "Total acumulado", AppColors.SUCCESS, "💰");
+        JPanel c2 = createKpiCard("Último Peso", getLastWeight() + " kg", "Registro reciente", AppColors.PRIMARY, "⚖️");
+        JPanel c3 = createKpiCard("Presión Arterial", getLastBP(), "Salud cardiovascular", AppColors.DANGER, "❤️");
+        JPanel c4 = createKpiCard("Ahorro Estimado", "$" + String.format("%,.0f", balance * 0.15), "15% del balance", AppColors.ACCENT, "📈");
+        
+        AnimationUtils.addHoverEffect(c1);
+        AnimationUtils.addHoverEffect(c2);
+        AnimationUtils.addHoverEffect(c3);
+        AnimationUtils.addHoverEffect(c4);
+
+        kpiPanel.add(c1);
+        kpiPanel.add(c2);
+        kpiPanel.add(c3);
+        kpiPanel.add(c4);
+        
+        mainContent.add(kpiPanel, BorderLayout.NORTH);
+
+        // 2.2 Charts Row
+        JPanel chartsPanel = new JPanel(new GridLayout(1, 2, 25, 0));
+        chartsPanel.setOpaque(false);
+        
+        chartsPanel.add(createChartWrapper("Gastos por Categoría", createPieChart()));
+        chartsPanel.add(createChartWrapper("Evolución de Peso", createLineChart()));
+        
+        mainContent.add(chartsPanel, BorderLayout.CENTER);
+
+        // 2.3 Recent Activity Sidebar (Optional but looks good)
+        JPanel activityPanel = createStyledPanel("Actividad Reciente");
+        activityPanel.setPreferredSize(new Dimension(300, 0));
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        List<FinanceRecord> recent = financeDao.getAllRecords().stream().limit(8).collect(java.util.stream.Collectors.toList());
+        for (FinanceRecord r : recent) {
+            listModel.addElement(String.format("• %s: %s $%.0f", r.getCategory(), r.getType().equals("Gasto") ? "-" : "+", r.getAmount()));
+        }
+        JList<String> list = new JList<>(listModel);
+        list.setFont(new Font("Arial", Font.PLAIN, 13));
+        list.setFixedCellHeight(35);
+        activityPanel.add(new JScrollPane(list), BorderLayout.CENTER);
+        
+        add(mainContent, BorderLayout.CENTER);
+        add(activityPanel, BorderLayout.EAST);
     }
 
-    private JPanel createKpiCard(String title, String value, Color color) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(color);
-        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel titleLabel = new JLabel(title, SwingConstants.CENTER);
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        
-        JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
-        valueLabel.setForeground(Color.WHITE);
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(valueLabel, BorderLayout.CENTER);
-        
+    private JPanel createKpiCard(String title, String value, String sub, Color color, String icon) {
+        JPanel card = new JPanel(new BorderLayout(15, 5));
+        card.setBackground(AppColors.SURFACE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(AppColors.BORDER, 1, true),
+            new EmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel iconLbl = new JLabel(icon);
+        iconLbl.setFont(new Font("Arial", Font.PLAIN, 28));
+        iconLbl.setForeground(color);
+        card.add(iconLbl, BorderLayout.WEST);
+
+        JPanel text = new JPanel(new GridLayout(3, 1));
+        text.setOpaque(false);
+        JLabel tLbl = new JLabel(title);
+        tLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        tLbl.setForeground(AppColors.TEXT_SECONDARY);
+        JLabel vLbl = new JLabel(value);
+        vLbl.setFont(new Font("Arial", Font.BOLD, 22));
+        vLbl.setForeground(AppColors.TEXT_PRIMARY);
+        JLabel sLbl = new JLabel(sub);
+        sLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        sLbl.setForeground(AppColors.TEXT_LIGHT);
+
+        text.add(tLbl);
+        text.add(vLbl);
+        text.add(sLbl);
+        card.add(text, BorderLayout.CENTER);
         return card;
     }
 
-    private double calculateBalance() {
-        List<FinanceRecord> records = financeDao.getAllRecords();
-        double balance = 0;
-        for (FinanceRecord r : records) {
-            if ("Ingreso".equals(r.getType())) {
-                balance += r.getAmount();
-            } else {
-                balance -= r.getAmount();
-            }
+    private JPanel createChartWrapper(String title, JFreeChart chart) {
+        JPanel p = createStyledPanel(title);
+        ChartPanel cp = new ChartPanel(chart);
+        cp.setBackground(AppColors.SURFACE);
+        p.add(cp, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel createStyledPanel(String title) {
+        JPanel p = new JPanel(new BorderLayout(0, 10));
+        p.setBackground(AppColors.SURFACE);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(AppColors.BORDER, 1, true),
+            new EmptyBorder(15, 15, 15, 15)
+        ));
+        JLabel t = new JLabel(title);
+        t.setFont(new Font("Arial", Font.BOLD, 16));
+        t.setForeground(AppColors.TEXT_PRIMARY);
+        p.add(t, BorderLayout.NORTH);
+        return p;
+    }
+
+    private JFreeChart createPieChart() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        Map<String, Double> data = new HashMap<>();
+        financeDao.getAllRecords().stream()
+            .filter(r -> "Gasto".equals(r.getType()))
+            .forEach(r -> data.put(r.getCategory(), data.getOrDefault(r.getCategory(), 0.0) + r.getAmount()));
+        
+        data.forEach(dataset::setValue);
+        JFreeChart chart = ChartFactory.createRingChart("", dataset, true, true, false);
+        ChartUtils.applyPremiumStyle(chart);
+        return chart;
+    }
+
+    private JFreeChart createLineChart() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        List<HealthRecord> records = healthDao.getAllRecords();
+        // Show last 10 records for better flow
+        for (int i = Math.max(0, records.size() - 10); i < records.size(); i++) {
+            HealthRecord r = records.get(i);
+            dataset.addValue(r.getWeight(), "Peso", r.getDate().substring(5, 10));
         }
-        return balance;
+        JFreeChart chart = ChartFactory.createLineChart("", "Fecha", "kg", dataset, PlotOrientation.VERTICAL, false, true, false);
+        ChartUtils.applyPremiumStyle(chart);
+        return chart;
+    }
+
+    private double calculateBalance() {
+        return financeDao.getAllRecords().stream()
+            .mapToDouble(r -> "Ingreso".equals(r.getType()) ? r.getAmount() : -r.getAmount())
+            .sum();
     }
 
     private String getLastWeight() {
         List<HealthRecord> records = healthDao.getAllRecords();
-        if (records.isEmpty()) return "0.0";
-        return String.valueOf(records.get(0).getWeight()); // Order by ID DESC ensures this is the latest
+        return records.isEmpty() ? "0" : String.valueOf(records.get(0).getWeight());
     }
 
     private String getLastBP() {
         List<HealthRecord> records = healthDao.getAllRecords();
-        if (records.isEmpty()) return "N/A";
-        return records.get(0).getBloodPressure();
-    }
-
-    private DefaultPieDataset createExpenseDataset() {
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        List<FinanceRecord> records = financeDao.getAllRecords();
-        Map<String, Double> expensesByCategory = new HashMap<>();
-        
-        for (FinanceRecord r : records) {
-            if ("Gasto".equals(r.getType())) {
-                String cat = r.getCategory() == null || r.getCategory().isEmpty() ? "Otros" : r.getCategory();
-                expensesByCategory.put(cat, expensesByCategory.getOrDefault(cat, 0.0) + r.getAmount());
-            }
-        }
-        
-        for (Map.Entry<String, Double> entry : expensesByCategory.entrySet()) {
-            dataset.setValue(entry.getKey(), entry.getValue());
-        }
-        
-        return dataset;
-    }
-
-    private DefaultCategoryDataset createWeightDataset() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        List<HealthRecord> records = healthDao.getAllRecords();
-        
-        // Reverse iterate to show oldest to newest left to right
-        for (int i = records.size() - 1; i >= 0; i--) {
-            HealthRecord r = records.get(i);
-            String displayDate = r.getDate().substring(0, 10);
-            dataset.addValue(r.getWeight(), "Peso", displayDate);
-        }
-        
-        return dataset;
+        return records.isEmpty() ? "N/A" : records.get(0).getBloodPressure();
     }
 }

@@ -4,6 +4,7 @@ import com.app.MainApplication;
 import com.app.dao.UserDao;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class LoginFrame extends JFrame {
@@ -12,39 +13,90 @@ public class LoginFrame extends JFrame {
     private JPasswordField passField;
 
     public LoginFrame() {
-        setTitle("Acceso de Seguridad");
-        setSize(400, 300);
+        setTitle("Acceso Seguro - Salud y Finanzas Pro");
+        setSize(450, 550);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
+        setUndecorated(false); // Can be true for custom title bars, but keeping it simple for now.
+
+        // Main background panel with a subtle gradient-like color
+        JPanel bgPanel = new JPanel(new BorderLayout());
+        bgPanel.setBackground(new Color(34, 47, 62));
         
-        JPanel mainPanel = new JPanel(new GridLayout(4, 1, 10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
+        // Inner login card
+        JPanel loginCard = new JPanel();
+        loginCard.setLayout(new BoxLayout(loginCard, BoxLayout.Y_AXIS));
+        loginCard.setBackground(Color.WHITE);
+        loginCard.setBorder(BorderFactory.createCompoundBorder(
+            new EmptyBorder(40, 40, 40, 40),
+            BorderFactory.createEmptyBorder()
+        ));
 
-        JLabel title = new JLabel("Ingreso al Sistema", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 22));
-        mainPanel.add(title);
+        // Logo / Icon
+        JLabel iconLbl = new JLabel("🛡️");
+        iconLbl.setFont(new Font("Arial", Font.PLAIN, 60));
+        iconLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        loginCard.add(iconLbl);
+        loginCard.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JPanel userPanel = new JPanel(new GridLayout(2, 1));
-        userPanel.add(new JLabel("Usuario:"));
+        JLabel title = new JLabel("Bienvenido");
+        title.setFont(new Font("Arial", Font.BOLD, 26));
+        title.setForeground(new Color(44, 62, 80));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        loginCard.add(title);
+
+        JLabel subTitle = new JLabel("Ingresa tus credenciales para continuar");
+        subTitle.setFont(new Font("Arial", Font.PLAIN, 12));
+        subTitle.setForeground(Color.GRAY);
+        subTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        loginCard.add(subTitle);
+        loginCard.add(Box.createRigidArea(new Dimension(0, 40)));
+
+        // Inputs
+        loginCard.add(createInputLabel("USUARIO"));
         userField = new JTextField("admin");
-        userPanel.add(userField);
-        mainPanel.add(userPanel);
+        styleTextField(userField);
+        loginCard.add(userField);
+        loginCard.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JPanel passPanel = new JPanel(new GridLayout(2, 1));
-        passPanel.add(new JLabel("Contraseña:"));
+        loginCard.add(createInputLabel("CONTRASEÑA"));
         passField = new JPasswordField();
-        passPanel.add(passField);
-        mainPanel.add(passPanel);
+        styleTextField(passField);
+        loginCard.add(passField);
+        loginCard.add(Box.createRigidArea(new Dimension(0, 40)));
 
-        JButton btnLogin = new JButton("Ingresar Seguro");
-        btnLogin.setBackground(new Color(41, 128, 185));
+        // Login Button
+        JButton btnLogin = new JButton("ACCEDER AHORA");
+        btnLogin.setBackground(new Color(52, 152, 219));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setFont(new Font("Arial", Font.BOLD, 14));
+        btnLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnLogin.setFocusPainted(false);
+        btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogin.addActionListener(e -> attemptLogin());
-        mainPanel.add(btnLogin);
+        loginCard.add(btnLogin);
 
-        add(mainPanel);
+        bgPanel.add(loginCard, BorderLayout.CENTER);
+        add(bgPanel);
+    }
+
+    private JLabel createInputLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Arial", Font.BOLD, 10));
+        l.setForeground(new Color(127, 140, 141));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    private void styleTextField(JTextField field) {
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        field.setBackground(new Color(245, 246, 250));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 221, 225), 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
     }
 
     private void attemptLogin() {
@@ -53,11 +105,10 @@ public class LoginFrame extends JFrame {
         String p = new String(passField.getPassword());
         
         if (dao.validateLogin(u, p)) {
-            // Start Main Application App
             this.dispose();
             MainApplication.launchDashboard(); 
         } else {
-            JOptionPane.showMessageDialog(this, "Credenciales Inválidas.", "Error de Seguridad", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Credenciales incorrectas.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
