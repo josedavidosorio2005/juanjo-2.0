@@ -29,4 +29,14 @@ public class BudgetDao {
         } catch (SQLException ignore) {}
         return list;
     }
+
+    public boolean deleteBudget(String category) {
+        String sql = "DELETE FROM budgets WHERE category = ?";
+        try (Connection conn = DatabaseManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, category);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
 }

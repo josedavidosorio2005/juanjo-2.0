@@ -54,6 +54,12 @@ public class DatabaseManager {
                 } catch (SQLException ignore) {}
             }
 
+            // Seed sample data if database is fresh (empty)
+            java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM finance_records");
+            if (rs.next() && rs.getInt(1) == 0) {
+                DataSeeder.seedData();
+            }
+
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
         }

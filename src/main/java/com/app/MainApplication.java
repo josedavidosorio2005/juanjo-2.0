@@ -44,7 +44,7 @@ public class MainApplication {
 
         SwingUtilities.invokeLater(() -> {
             try {
-                UIManager.setLookAndFeel(new FlatDarkLaf());
+                UIManager.setLookAndFeel(new FlatLightLaf());
             } catch (Exception e) {}
 
             // Starts with Security First

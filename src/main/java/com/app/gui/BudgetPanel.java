@@ -132,7 +132,9 @@ public class BudgetPanel extends JPanel {
         
         JPanel tableFooter = new JPanel(new FlowLayout(FlowLayout.LEFT));
         tableFooter.setOpaque(false);
-        tableFooter.add(new JButton("+ Nueva Categoría"));
+        JButton btnNew = new JButton("+ Nueva Categoría");
+        btnNew.addActionListener(e -> showAddBudgetDialog());
+        tableFooter.add(btnNew);
         tableFooter.add(new JButton("📜 Historial de Cambios"));
         tableWrapper.add(tableFooter, BorderLayout.SOUTH);
         
@@ -153,19 +155,6 @@ public class BudgetPanel extends JPanel {
         alertsSidebar.add(alertsTitle);
         alertsSidebar.add(Box.createRigidArea(new Dimension(0, 15)));
         
-        // Mock Alerts
-        alertsSidebar.add(createAlertItem("Transporte", 90, "Gastado $270k de $300k", Color.ORANGE));
-        alertsSidebar.add(createAlertItem("Entretenimiento", 105, "Excedido por $10k", Color.RED));
-        
-        alertsSidebar.add(Box.createVerticalGlue());
-        
-        JLabel summaryTitle = new JLabel("Resumen del Mes");
-        summaryTitle.setFont(new Font("Arial", Font.BOLD, 16));
-        alertsSidebar.add(summaryTitle);
-        alertsSidebar.add(new JLabel("Presupuesto Total: $2,000,000"));
-        alertsSidebar.add(new JLabel("Total Gastado: $1,600,000"));
-        alertsSidebar.add(new JLabel("Disponible: $400,000"));
-
         bodyPanel.add(alertsSidebar, BorderLayout.EAST);
 
         gbc.gridy = 2; gbc.weighty = 0.8;
@@ -185,6 +174,22 @@ public class BudgetPanel extends JPanel {
         add(mainContent, BorderLayout.CENTER);
 
         refreshData();
+    }
+
+    private void showAddBudgetDialog() {
+        String cat = JOptionPane.showInputDialog(this, "Nombre de la Categoría:");
+        if (cat != null && !cat.trim().isEmpty()) {
+            String limitStr = JOptionPane.showInputDialog(this, "Límite de Gasto ($):");
+            try {
+                double limit = Double.parseDouble(limitStr);
+                if (budgetDao.upsertBudget(cat.trim(), limit)) {
+                    refreshData();
+                    JOptionPane.showMessageDialog(this, "Presupuesto guardado.");
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Monto inválido.");
+            }
+        }
     }
 
     private JPanel createKpiCard(String title, JLabel valueLbl, JLabel subLbl, Color color, String icon) {
@@ -268,60 +273,67 @@ public class BudgetPanel extends JPanel {
     }
 
     private void refreshData() {
-        List<BudgetRecord> budgets = budgetDao.getAll();
-        List<FinanceRecord> records = financeDao.getAllRecords();
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                List<BudgetRecord> budgets = budgetDao.getAll();
+                List<FinanceRecord> records = financeDao.getAllRecords();
 
-        // Update Table
-        tableModel.setRowCount(0);
-        double totalBudget = 0;
-        double totalSpent = 0;
-        int activeAlerts = 0;
+                SwingUtilities.invokeLater(() -> {
+                    tableModel.setRowCount(0);
+                    alertsSidebar.removeAll();
+                    alertsSidebar.add(new JLabel("🔔 Alertas de Presupuesto"));
+                    alertsSidebar.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        for (BudgetRecord b : budgets) {
-            double spent = records.stream()
-                .filter(r -> "Gasto".equals(r.getType()) && b.getCategory().equals(r.getCategory()))
-                .mapToDouble(FinanceRecord::getAmount)
-                .sum();
-            
-            double available = b.getLimitAmount() - spent;
-            int progress = (int) ((spent / b.getLimitAmount()) * 100);
-            String status = spent > b.getLimitAmount() ? "Excedido" : (progress > 80 ? "Alerta" : "Normal");
-            
-            if (spent > b.getLimitAmount()) activeAlerts++;
+                    double totalBudget = 0;
+                    double totalSpent = 0;
+                    int activeAlerts = 0;
 
-            tableModel.addRow(new Object[]{
-                b.getCategory(),
-                "$" + String.format("%.0f", b.getLimitAmount()),
-                "$" + String.format("%.0f", spent),
-                "$" + String.format("%.0f", available),
-                progress + "%",
-                status,
-                "✏️ 🗑️"
-            });
+                    for (BudgetRecord b : budgets) {
+                        double spent = records.stream()
+                            .filter(r -> "Gasto".equals(r.getType()) && b.getCategory().equals(r.getCategory()))
+                            .mapToDouble(FinanceRecord::getAmount)
+                            .sum();
+                        
+                        double available = b.getLimitAmount() - spent;
+                        int progress = (int) ((spent / b.getLimitAmount()) * 100);
+                        String status = spent > b.getLimitAmount() ? "Excedido" : (progress > 80 ? "Alerta" : "Normal");
+                        
+                        if (spent > b.getLimitAmount()) {
+                            activeAlerts++;
+                            alertsSidebar.add(createAlertItem(b.getCategory(), progress, "Excedido por $" + (spent - b.getLimitAmount()), Color.RED));
+                        } else if (progress > 80) {
+                            alertsSidebar.add(createAlertItem(b.getCategory(), progress, "Cerca del límite", Color.ORANGE));
+                        }
 
-            totalBudget += b.getLimitAmount();
-            totalSpent += spent;
-        }
+                        tableModel.addRow(new Object[]{
+                            b.getCategory(),
+                            "$" + String.format("%.0f", b.getLimitAmount()),
+                            "$" + String.format("%.0f", spent),
+                            "$" + String.format("%.0f", available),
+                            progress + "%",
+                            status,
+                            "✏️ 🗑️"
+                        });
 
-        // Update KPI Labels
-        totalBudgetVal.setText("$" + String.format("%,.0f", totalBudget));
-        totalBudgetSub.setText("Abril 2024");
-        
-        spentVal.setText("$" + String.format("%,.0f", totalSpent));
-        double spentPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-        spentSub.setText(String.format("%.0f%% del presupuesto", spentPct));
-        
-        availableVal.setText("$" + String.format("%,.0f", totalBudget - totalSpent));
-        availableSub.setText(String.format("%.0f%% del presupuesto", 100 - spentPct));
-        
-        alertsVal.setText(activeAlerts + " categorías");
-        alertsSub.setText(activeAlerts > 0 ? "Superando el límite" : "Todo bajo control");
+                        totalBudget += b.getLimitAmount();
+                        totalSpent += spent;
+                    }
 
-        // Update Chart
-        updateChart(budgets);
-        
-        revalidate();
-        repaint();
+                    totalBudgetVal.setText("$" + String.format("%,.0f", totalBudget));
+                    spentVal.setText("$" + String.format("%,.0f", totalSpent));
+                    double spentPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+                    spentSub.setText(String.format("%.0f%% del presupuesto", spentPct));
+                    availableVal.setText("$" + String.format("%,.0f", totalBudget - totalSpent));
+                    alertsVal.setText(activeAlerts + " categorías");
+                    
+                    updateChart(budgets);
+                    alertsSidebar.revalidate();
+                    alertsSidebar.repaint();
+                });
+                return null;
+            }
+        }.execute();
     }
 
     private void updateChart(List<BudgetRecord> budgets) {
@@ -338,5 +350,6 @@ public class BudgetPanel extends JPanel {
         cp.setPreferredSize(new Dimension(250, 250));
         cp.setBackground(Color.WHITE);
         chartContainer.add(cp);
+        chartContainer.revalidate();
     }
 }
