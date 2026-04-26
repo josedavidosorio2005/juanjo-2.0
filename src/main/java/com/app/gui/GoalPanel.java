@@ -229,9 +229,17 @@ public class GoalPanel extends JPanel {
                     String text = addField.getText().trim();
                     if (text.isEmpty()) return;
                     double amount = Double.parseDouble(text);
-                    goalDao.addFunds(goal.getId(), amount);
-                    refreshList();
-                } catch (Exception ex) {
+                    if (amount <= 0) {
+                        JOptionPane.showMessageDialog(this, "El monto debe ser positivo", "Validación", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    if (goalDao.addFunds(goal.getId(), amount)) {
+                        refreshList();
+                        JOptionPane.showMessageDialog(this, "Ahorro registrado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al registrar el ahorro", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(this, "Monto inválido", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             });

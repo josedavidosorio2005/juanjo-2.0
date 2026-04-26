@@ -27,6 +27,11 @@ public class FinanceController {
         try {
             double amount = Double.parseDouble(amountTxt);
             
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(parentView, "El monto debe ser un número positivo.", "Validación", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+
             // 1. Predictive Alert Engine
             if ("Gasto".equals(type)) {
                 checkPredictiveBudgetAlert(parentView, category, amount);
@@ -34,11 +39,16 @@ public class FinanceController {
 
             // 2. Data persistence
             FinanceRecord r = new FinanceRecord(0, date, type, amount, category, desc, account, tag, method, isRecurring);
-            financeDao.insertRecord(r);
-            return true;
+            if (financeDao.insertRecord(r)) {
+                JOptionPane.showMessageDialog(parentView, "Transacción guardada exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                return true;
+            } else {
+                JOptionPane.showMessageDialog(parentView, "Error crítico: No se pudo guardar en la base de datos.", "Error de Sistema", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
             
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(parentView, "Por favor ingrese un monto válido (número).", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(parentView, "Por favor ingrese un monto válido (ej: 1500.50).", "Formato Inválido", JOptionPane.ERROR_MESSAGE);
             return false;
         }
     }

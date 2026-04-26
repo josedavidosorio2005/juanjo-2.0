@@ -8,14 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BudgetDao {
-    public void upsertBudget(String category, double limit) {
+    public boolean upsertBudget(String category, double limit) {
         String sql = "INSERT INTO budgets (category, limit_amount) VALUES (?, ?) ON CONFLICT(category) DO UPDATE SET limit_amount = ?";
         try (Connection conn = DatabaseManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, category);
             pstmt.setDouble(2, limit);
             pstmt.setDouble(3, limit);
             pstmt.executeUpdate();
-        } catch (SQLException ignore) {}
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error upserting budget: " + e.getMessage());
+            return false;
+        }
     }
 
     public List<BudgetRecord> getAll() {

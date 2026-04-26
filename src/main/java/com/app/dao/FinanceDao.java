@@ -9,7 +9,7 @@ import java.util.List;
 
 public class FinanceDao {
 
-    public void insertRecord(FinanceRecord record) {
+    public boolean insertRecord(FinanceRecord record) {
         String sql = "INSERT INTO finance_records (date, type, amount, category, description, account, source_tag, payment_method, is_recurring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -24,9 +24,11 @@ public class FinanceDao {
             pstmt.setString(8, record.getPaymentMethod());
             pstmt.setBoolean(9, record.isRecurring());
             pstmt.executeUpdate();
+            return true;
             
         } catch (SQLException e) {
             System.err.println("Error inserting finance record: " + e.getMessage());
+            return false;
         }
     }
 

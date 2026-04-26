@@ -158,19 +158,39 @@ public class HealthPanel extends JPanel {
 
     private void saveRecord() {
         try {
-            double weight = Double.parseDouble(weightField.getText());
-            String bp = bpField.getText();
+            String weightStr = weightField.getText().trim();
+            if (weightStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El peso es obligatorio.", "Validación", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            double weight = Double.parseDouble(weightStr);
+            if (weight <= 0) {
+                JOptionPane.showMessageDialog(this, "El peso debe ser un número positivo.", "Validación", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String bp = bpField.getText().trim();
+            if (bp.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "La presión arterial es obligatoria.", "Validación", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             String notes = notesField.getText();
             String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
-            healthDao.insertRecord(new HealthRecord(0, date, weight, bp, notes));
-            weightField.setText("");
-            bpField.setText("");
-            notesField.setText("");
-            loadTableData();
-            JOptionPane.showMessageDialog(this, "Registro guardado.");
+            if (healthDao.insertRecord(new HealthRecord(0, date, weight, bp, notes))) {
+                weightField.setText("");
+                bpField.setText("");
+                notesField.setText("");
+                loadTableData();
+                JOptionPane.showMessageDialog(this, "Registro de salud guardado correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al guardar en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "El peso debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Revisa los datos ingresados.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Ocurrió un error inesperado: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
