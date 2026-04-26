@@ -1,53 +1,67 @@
-# 💼 Salud y Finanzas Pro - Enterprise Edition
+# 🛡️ Salud & Finanzas Pro - Enterprise Edition 📈
 
-¡Bienvenido a **Salud y Finanzas Pro**! Una aplicación de escritorio robusta, moderna y segura escrita en Java. Diseñada de forma corporativa simulando la escalabilidad de aplicaciones empresariales masivas.
+**Salud & Finanzas Pro** es una suite integral de escritorio diseñada para el control total de la salud física y el rendimiento financiero. Orientada a profesionales, familias y empresas que buscan una gestión centralizada, segura y estéticamente superior.
 
-## ✨ Características Principales (Arquitectura Pro)
+---
 
-- **Arquitectura Limpia (MVC):** El código está estructurado en Controladores, Modelos, DAOs y Vistas independientes, facilitando exponencialmente el mantenimiento.
-- **Sistema de Seguridad (Criptografía):** Inyección de un `LoginFrame` como punto de entrada. Las credenciales se almacenan mediante hashing (`SHA-256`) asegurando que los usuarios no expongan datos sensibles.
-- **Daemon Cron Jobs Simulado:** Un motor asíncrono implementado en un hilo lógico que revisa el historial cruzado al arrancar la aplicación para procesar pagos y membresías de forma recurrente/automática mes a mes.
-- **Alertas Predictivas IA:** El sistema cruza activamente las gráficas de Gastos vs Límite de Presupuestos, enviando un freno restrictivo visual de alerta si pasas más del 80% del umbral definido permitiendo sanidad financiera total.
-- **Diseño FlatLaf:** Abandonamos el diseño clásico `Nimbus` de Swing para portar un LookAndFeel nativo plano (Oscuro y Claro), idéntico al de los Frameworks web masIVOS.
-- **Bases de Datos Separadas Relacionales:** Soporte completo en base de datos local SQLite para múltiples tablas de metadatos (`users`, `health_records`, `finance_records`, `budgets`, `savings_goals`).
+## 💎 Características Principales
 
-## 🛠 Instalación y Ejecución
+### 💰 Gestión Financiera Inteligente
+- **Dashboard Predictivo**: Visualiza tu balance neto y obtén proyecciones de gasto a fin de mes basadas en IA de tendencias.
+- **Control de Presupuestos**: Define límites por categoría y recibe alertas visuales (Normal, Alerta, Excedido) en tiempo real.
+- **Finanzas del Hogar**: Panel de acciones rápidas para servicios, alquiler y mantenimiento doméstico.
+- **Metas de Ahorro**: Sistema visual de seguimiento de objetivos con barras de progreso dinámicas.
 
-Es muy sencillo abrir y ejecutar la plataforma si tienes Java instalado en tu equipo.
+### 🏥 Salud & Bienestar Integral
+- **Seguimiento de Biométricos**: Registro histórico de peso, presión arterial y notas de salud.
+- **Análisis Gráfico**: Visualiza la evolución de tu salud física con gráficas de tendencia asíncronas.
+- **Reportes de Salud**: Exportación rápida de datos médicos para consultas profesionales.
 
-### Requisitos Técnicos
-* Java 8 o superior (Se recomienda Java 17 LTS).
-* Maven (Build Tool).
+### 🚀 Tecnología y Rendimiento
+- **Arquitectura Asíncrona**: Carga de datos optimizada con hilos de fondo (`SwingWorker`) para una experiencia de 60 FPS sin bloqueos.
+- **Seguridad Empresarial**: Autenticación de usuarios con cifrado de contraseñas SHA-256 y base de datos SQLite local de alta fiabilidad.
+- **Export Engine**: Generación instantánea de reportes en formato CSV para auditorías externas o contabilidad avanzada.
 
-### Levantar el Proyecto Localmente
+---
 
-1. **Clona el repositorio** en tu equipo local:
+## 🎨 Diseño y UX
+- **Estética Modern-Clean**: Basada en el framework **FlatLaf** con soporte para Modo Claro y Oscuro.
+- **Visualización Avanzada**: Gráficos premium integrados con **JFreeChart**, personalizados con paletas de colores armónicas y elegantes.
+- **Micro-interacciones**: Efectos de hover, transiciones de panel y animaciones que elevan la percepción de calidad del producto.
+
+---
+
+## 🛠️ Stack Tecnológico
+- **Lenguaje**: Java 8+
+- **Interfaz**: Java Swing + FlatLaf (Look & Feel Moderno)
+- **Base de Datos**: SQLite (Zero Configuration)
+- **Gestor de Dependencias**: Maven
+- **Gráficas**: JFreeChart
+
+---
+
+## 📦 Instalación y Uso
+
+1. **Clonar el repositorio**:
    ```bash
    git clone https://github.com/josedavidosorio2005/juanjo-2.0.git
    ```
-2. **Entra al directorio** del software:
+2. **Compilar y Ejecutar con Maven**:
    ```bash
-   cd juanjo-2.0
+   mvn clean compile exec:java
    ```
-3. **Instala y Compila las Dependencias** mediante Maven:
-   ```bash
-   mvn clean package
-   ```
-4. **Inicia el Ejecutable:**
-   ```bash
-   java -jar target/health-finance-app-1.0-SNAPSHOT-jar-with-dependencies.jar
-   ```
+3. **Credenciales por Defecto**:
+   - **Usuario**: `admin`
+   - **Contraseña**: `admin`
+   *(Se recomienda crear un nuevo usuario desde la pantalla de registro al iniciar)*
 
-*(Nota: Al acceder por primera vez, utiliza el Acceso Administrativo seguro para crear la base de datos `admin` - `admin`.)*
+---
 
-## 📚 Stack Tecnológico
+## 🎯 ¿A quién va dirigido?
+- **Individuos y Familias**: Para quienes desean un control riguroso de su patrimonio y bienestar.
+- **Emprendedores y Pequeñas Empresas**: Para llevar una contabilidad clara y proyectar flujos de caja de forma sencilla.
+- **Profesionales de la Salud/Finanzas**: Como herramienta de apoyo para el registro rápido de datos críticos.
 
-| Módulo/Librería | Propósito |
-|---------|---------|
-| **Java Swing + AWT** | Interfaz Gráfica Nativa de Componentes |
-| **FlatLaf (Flat Dark Laf)** | Modernización Visual Global del Tema UI |
-| **SQLite (Xerial JDBC)** | Base de Datos incrustada robusta y relacional |
-| **JFreeChart** | Visualización de metadatos e Históricos Estadísticos |
-| **Maven** | Gestión Transaccional de Librerías y Empaquetado `Fat JAR` |
+---
 
-> *Software diseñado pensando en escalabilidad y limpieza de patrones de diseño orientados a objetos.*
+Desarrollado con ❤️ para la excelencia operativa.
